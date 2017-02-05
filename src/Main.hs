@@ -11,8 +11,9 @@ import           Data.Pool(Pool, createPool, withResource)
 import           Database.PostgreSQL.Simple
 import           Control.Monad.IO.Class
 import           Network.HTTP.Types.Status
-import           Data.UUID.V4
-import           Data.UUID
+import           Data.UUID.V4 (nextRandom)
+import           Data.UUID (UUID, toString)
+import qualified Data.UUID as UUID
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
@@ -54,6 +55,12 @@ main = do
           segments <- liftIO $ segments
           json segments
 
+        get "/segments/:uuid" $ do
+          uuid <- param "uuid"
+          segment <- liftIO $ findSegment uuid
+          case segment of
+            Just s -> json s
+            Nothing -> status notFound404
 
         put "/segments" $ do
           b <- body

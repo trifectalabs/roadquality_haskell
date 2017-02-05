@@ -7,6 +7,7 @@ import           Data.Aeson (ToJSON,FromJSON, toJSON, parseJSON)
 import           Data.Aeson.Types (Value(String), typeMismatch)
 import qualified Data.Text as T
 import           Data.UUID (UUID, fromString)
+import qualified Data.UUID
 import           Control.Applicative (pure)
 
 
