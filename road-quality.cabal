@@ -20,6 +20,7 @@ executable road-quality
                      , uuid
                      , opaleye
                      , aeson
+                     , double-conversion
                      , product-profunctors >= 0.6.2   && < 0.8
                      , time                >= 1.4     && < 1.7
                      , postgresql-simple   >= 0.5     && < 0.6
