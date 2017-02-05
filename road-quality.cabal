@@ -1,0 +1,27 @@
+name:                  roadquality
+version:               0.0.1
+synopsis:              Crowdsourced data on road conditions for cycling and running
+homepage:              https://github.com/trifectalabs/road_quality
+license:               MIT
+author:                Christopher Poenaru
+maintainer:            team@trifectalabs.com
+category:              Web
+build-type:            Simple
+cabal-version:         >=1.10
+
+executable road-quality
+  default-language: Haskell2010
+  main-is:             Main.hs
+  hs-source-dirs:      src
+  build-depends:       base
+                     , scotty
+                     , http-types
+                     , text
+                     , opaleye
+                     , aeson
+                     , product-profunctors >= 0.6.2   && < 0.8
+                     , time                >= 1.4     && < 1.7
+                     , postgresql-simple   >= 0.5     && < 0.6
+                     , configurator        >= 0.3.0.0
+                     , transformers        >= 0.4.2.0
+                     , resource-pool       >= 0.2.3.2
