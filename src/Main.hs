@@ -40,6 +40,7 @@ main = do
 
           route <- liftIO $ route pool
             (Point fromLat fromLng, Point toLat toLng)
-          json route
+          segments <- liftIO $ segments pool
+          json (route, segments)
 
 

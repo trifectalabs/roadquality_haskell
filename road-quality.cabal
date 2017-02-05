@@ -17,6 +17,7 @@ executable road-quality
                      , scotty
                      , http-types
                      , text
+                     , uuid
                      , opaleye
                      , aeson
                      , product-profunctors >= 0.6.2   && < 0.8
