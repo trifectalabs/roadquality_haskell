@@ -18,13 +18,6 @@ import qualified Data.Text.Lazy as TL
 
 import           Models
 
-data DBConfig = DBConfig {
-  dbName :: String,
-  dbUser :: String,
-  dbPassword :: String
-  }
-     deriving (Show, Generic)
-
 newConn :: DBConfig -> IO Connection
 newConn conf = connect defaultConnectInfo
                        { connectUser = dbUser conf
