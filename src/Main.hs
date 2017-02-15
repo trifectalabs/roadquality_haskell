@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImplicitParams #-}
 
 import           Web.Scotty
@@ -27,10 +28,12 @@ main = do
   dbConf <- makeDBConfig loadedConf
   oauthConf <- makeOAuthConfig loadedConf
 
-  case dbConf of
-    Nothing -> putStrLn "No database configuration found. Exiting..."
-    Just conf -> do
-      pool <- createPool (newConn conf) close 1 40 10
+  case (dbConf, oauthConf) of
+    (Nothing, Nothing) -> putStrLn "No database or oauth configuration found. Exiting..."
+    (Nothing, Just a) -> putStrLn "No database configuration found. Exiting..."
+    (Just a, Nothing) -> putStrLn "No oauth configuration found. Exiting..."
+    (Just dbConf, Just oauthConf) -> do
+      pool <- createPool (newConn dbConf) close 1 40 10
       let ?pool = pool
       scotty 3000 $ do
 

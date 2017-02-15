@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
 import           Models
+import           Config
 
 newConn :: DBConfig -> IO Connection
 newConn conf = connect defaultConnectInfo

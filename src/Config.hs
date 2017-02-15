@@ -7,11 +7,6 @@ import           GHC.Generics
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as C
 
-validConfig :: [C.Config] -> [Bool]
-validConfig confs = do
-  map (\(c) -> True) confs
-
-
 makeDBConfig :: C.Config -> IO (Maybe DBConfig)
 makeDBConfig conf = do
   name <- C.lookup conf "database.name" :: IO (Maybe String)
@@ -28,14 +23,12 @@ makeOAuthConfig conf = do
   return $ OAuthConfig <$> fbClientId
                        <*> fbClientSecret
 
---instance AppConfig DBConfig
 data DBConfig = DBConfig {
   dbName :: String,
   dbUser :: String,
   dbPassword :: String
   } deriving (Show, Generic)
 
---instance AppConfig OAuthConfig
 data OAuthConfig = OAuthConfig {
   fbClientId :: String,
   fbClientSecret :: String
