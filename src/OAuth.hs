@@ -1,11 +1,9 @@
 module OAuth where
 
-import Data.Maybe (fromJust)
-import Network.OAuth.Consumer
-import Network.OAuth.Http.Request
-import Network.OAuth.Http.Response
-import Network.OAuth.Http.HttpClient
-import Network.OAuth.Http.PercentEncoding
+import           Data.Maybe (fromJust)
+import           Network.OAuth.OAuth2
+import           Data.ByteString.Internal
+import qualified Data.ByteString.Char8 as C
 
-facebookAuthUrl = fromJust . parseURL $ "https://www.facebook.com/v2.8/dialog/oauth"
-facebookAccessTokenUrl = fromJust . parseURL $ "https://graph.facebook.com/v2.8/oauth/access_token?"
+fetchCode :: OAuth2 -> String
+fetchCode fbOAuth = C.unpack $ oauthClientId fbOAuth

@@ -16,10 +16,15 @@ import           Data.UUID (UUID, toString)
 import qualified Data.UUID as UUID
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import           Data.String.Conversions
+import qualified Data.Text.Lazy.Encoding as TL
+import           Network.OAuth.OAuth2
+import           Data.Maybe
 
 import           Models
 import           DB
 import           Config
+import           OAuth
 
 
 main :: IO ()
@@ -69,3 +74,11 @@ main = do
               json seg
             Nothing      -> status badRequest400
 
+        get "/oauth" $ do
+          redirect $ convertString $ (oauthOAuthorizeEndpoint oauthConf)
+            <> "?app_id=" <> (convertString $ oauthClientId oauthConf)
+            <> "&redirect_uri=" <> (convertString $ fromJust (oauthCallback oauthConf))
+
+        get "/oauth/facebook" $ do
+          code <- param "code"
+          text code

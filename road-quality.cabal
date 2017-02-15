@@ -15,12 +15,14 @@ executable road-quality
   hs-source-dirs:      src
   build-depends:       base
                      , scotty
+                     , hoauth2
                      , http-types
                      , text
                      , uuid
-                     , opaleye
+                     , bytestring
                      , aeson
                      , double-conversion
+                     , string-conversions
                      , product-profunctors >= 0.6.2   && < 0.8
                      , time                >= 1.4     && < 1.7
                      , postgresql-simple   >= 0.5     && < 0.6
