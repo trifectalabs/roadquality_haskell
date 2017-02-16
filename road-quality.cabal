@@ -16,7 +16,9 @@ executable road-quality
   build-depends:       base
                      , scotty
                      , hoauth2
+                     , http-conduit
                      , http-types
+                     , wai
                      , text
                      , uuid
                      , bytestring

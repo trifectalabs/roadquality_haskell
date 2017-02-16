@@ -18,8 +18,10 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import           Data.String.Conversions
 import qualified Data.Text.Lazy.Encoding as TL
+import           Network.HTTP.Conduit
 import           Network.OAuth.OAuth2
 import           Data.Maybe
+import           Network.Wai
 
 import           Models
 import           DB
@@ -29,7 +31,7 @@ import           OAuth
 
 main :: IO ()
 main = do
-  loadedConf <- C.load [C.Required "application.conf"]
+  loadedConf <- C.load [C.Required "application2.conf"]
   dbConf <- makeDBConfig loadedConf
   oauthConf <- makeOAuthConfig loadedConf
 
@@ -53,8 +55,10 @@ main = do
           json route
 
         get "/segments" $ do
+          r <- request
           segments <- liftIO $ segments
-          json segments
+          authenticatedRequest r (json segments)
+          --json segments
 
         get "/segments/:uuid" $ do
           uuid <- param "uuid"
@@ -75,10 +79,47 @@ main = do
             Nothing      -> status badRequest400
 
         get "/oauth" $ do
-          redirect $ convertString $ (oauthOAuthorizeEndpoint oauthConf)
-            <> "?app_id=" <> (convertString $ oauthClientId oauthConf)
-            <> "&redirect_uri=" <> (convertString $ fromJust (oauthCallback oauthConf))
+          redirect $ buildFetchCodeURI oauthConf
 
         get "/oauth/facebook" $ do
           code <- param "code"
-          text code
+          mgr <- liftIO $ newManager tlsManagerSettings
+          let (url, body) = accessTokenUrl oauthConf code
+          resp <- liftIO $ doJSONPostRequest mgr oauthConf url (body ++ [("state", "test")])
+          case (resp :: OAuth2Result AccessToken) of
+            Right token -> do
+              user <- liftIO $ userinfo' mgr token
+              case (user :: OAuth2Result User) of
+                Right user -> redirect "/segments"
+                Left l -> text $ convertString l
+            Left l ->
+              text $ convertString l
+
+--authenticatedRequest :: Request -> ScottyM -> ScottyM ()
+authenticatedRequest r action = do
+  session <- header "Cookie"
+  case session of
+    Just s -> action
+    Nothing -> text "not authorized"
+
+buildFetchCodeURI :: OAuth2 -> TL.Text
+buildFetchCodeURI oauthConf =
+  convertString $ (oauthOAuthorizeEndpoint oauthConf)
+                <> "?app_id=" <> (convertString $ oauthClientId oauthConf)
+                <> "&redirect_uri=" <> (convertString $ fromJust (oauthCallback oauthConf))
+                <> "&scope=" <> "user_about_me,email"
+
+buildFetchAccessTokenURI :: OAuth2 -> TL.Text -> TL.Text
+buildFetchAccessTokenURI oauthConf code =
+  convertString $ (oauthOAuthorizeEndpoint oauthConf)
+                <> "?app_id=" <> (convertString $ oauthClientId oauthConf)
+                <> "&app_secret=" <> (convertString $ oauthClientSecret oauthConf)
+                <> "&redirect_uri=" <> "http://localhost:3000/oauth/facebook"
+                <> "&code=" <> convertString code
+
+userinfo' :: FromJSON User => Manager -> AccessToken -> IO (OAuth2Result User)
+userinfo' mgr token = authGetJSON mgr token "https://graph.facebook.com/me?fields=id,name,email"
+
+createSession :: User -> AccessToken -> TL.Text
+createSession user accessToken =
+  convertString $ Models.id user <> "||" <> name user <> "||" <> email user

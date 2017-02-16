@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Models
-( Route(..) , Point(..) , Segment(..), SegmentForm(..) ) where
+  ( Route(..) , Point(..) , Segment(..), SegmentForm(..), User(..) ) where
 
 import           GHC.Generics
 import           Data.Aeson (ToJSON,FromJSON, toJSON, parseJSON)
@@ -19,6 +19,10 @@ instance FromJSON UUID where
     in case fromString uuidString of
       Just uuid -> pure uuid
       Nothing   -> typeMismatch "UUID" json
+
+instance ToJSON User
+instance FromJSON User
+data User = User { id :: T.Text, name :: T.Text, email :: T.Text } deriving (Eq, Show, Generic)
 
 instance ToJSON Route
 instance FromJSON Route
