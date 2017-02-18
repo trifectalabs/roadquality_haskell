@@ -21,6 +21,7 @@ import qualified Data.Text.Lazy.Encoding as TL
 import           Network.HTTP.Conduit
 import           Network.OAuth.OAuth2
 import           Data.Maybe
+import           Data.Map as Map
 import           Network.Wai
 
 import           Models
@@ -42,6 +43,8 @@ main = do
     (Just dbConf, Just oauthConf) -> do
       pool <- createPool (newConn dbConf) close 1 40 10
       let ?pool = pool
+      let ?sessionStore = Map.empty :: Map TL.Text Session
+
       scotty 3000 $ do
 
         get "/route" $ do
@@ -82,6 +85,7 @@ main = do
           redirect $ buildFetchCodeURI oauthConf
 
         get "/oauth/facebook" $ do
+          r <- request
           code <- param "code"
           mgr <- liftIO $ newManager tlsManagerSettings
           let (url, body) = accessTokenUrl oauthConf code
@@ -90,17 +94,25 @@ main = do
             Right token -> do
               user <- liftIO $ userinfo' mgr token
               case (user :: OAuth2Result User) of
-                Right user -> redirect "/segments"
+                Right user -> do
+                  cookie <- parseSessionCookie r
+                  session <- createSession $ user token
+                  let ?sessionStore = storeSession cookie session
+                  redirect "/segments"
                 Left l -> text $ convertString l
             Left l ->
               text $ convertString l
 
---authenticatedRequest :: Request -> ScottyM -> ScottyM ()
+authenticatedRequest :: (?sessionStore :: Map TL.Text Session) => Network.Wai.Request -> ActionM () -> ActionM ()
 authenticatedRequest r action = do
-  session <- header "Cookie"
-  case session of
-    Just s -> action
-    Nothing -> text "not authorized"
+  cookie <- parseSessionCookie r
+  case cookie of
+    Just c -> do
+      let sessionMaybe = findSession c
+      case sessionMaybe of
+        Just s -> action
+        Nothing -> text "cookie not authorized"
+    Nothing -> text "no cookie"
 
 buildFetchCodeURI :: OAuth2 -> TL.Text
 buildFetchCodeURI oauthConf =
@@ -120,6 +132,18 @@ buildFetchAccessTokenURI oauthConf code =
 userinfo' :: FromJSON User => Manager -> AccessToken -> IO (OAuth2Result User)
 userinfo' mgr token = authGetJSON mgr token "https://graph.facebook.com/me?fields=id,name,email"
 
-createSession :: User -> AccessToken -> TL.Text
-createSession user accessToken =
-  convertString $ Models.id user <> "||" <> name user <> "||" <> email user
+createSession :: User -> AccessToken -> IO Session
+createSession user accessToken = do
+  Session <$> nextRandom
+          <*> return user
+
+storeSession :: (?sessionStore :: Map TL.Text Session) => TL.Text -> Session -> Map TL.Text Session
+storeSession cookie session = Map.insert cookie session ?sessionStore
+
+findSession :: (?sessionStore :: Map TL.Text Session) => TL.Text -> Maybe Session
+findSession cookie =
+  Map.lookup cookie ?sessionStore
+
+parseSessionCookie :: Network.Wai.Request -> ActionM (Maybe TL.Text)
+parseSessionCookie r = do
+  header "Cookie"

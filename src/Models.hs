@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Models
-  ( Route(..) , Point(..) , Segment(..), SegmentForm(..), User(..) ) where
+  ( Route(..) , Point(..) , Segment(..), SegmentForm(..), User(..), Session(..) ) where
 
 import           GHC.Generics
 import           Data.Aeson (ToJSON,FromJSON, toJSON, parseJSON)
@@ -22,7 +22,7 @@ instance FromJSON UUID where
 
 instance ToJSON User
 instance FromJSON User
-data User = User { id :: T.Text, name :: T.Text, email :: T.Text } deriving (Eq, Show, Generic)
+data User = User { userId :: T.Text, name :: T.Text, email :: T.Text } deriving (Eq, Show, Generic)
 
 instance ToJSON Route
 instance FromJSON Route
@@ -38,3 +38,4 @@ data SegmentForm = SegmentForm { segmentFormDistance :: Double, segmentFormPolyl
 
 data Point = Point { lat :: Double, lng :: Double }
 
+data Session = Session { sessionId :: UUID, user :: User } deriving (Eq, Show, Generic)
