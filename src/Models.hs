@@ -6,23 +6,14 @@ import           GHC.Generics
 import           Data.Aeson (ToJSON,FromJSON, toJSON, parseJSON)
 import           Data.Aeson.Types (Value(String), typeMismatch)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import           Data.UUID (UUID, fromString)
 import qualified Data.UUID
 import           Control.Applicative (pure)
 
-
-instance ToJSON UUID where
-  toJSON = String . T.pack . show
-instance FromJSON UUID where
-  parseJSON json@(String t) =
-    let uuidString = T.unpack t
-    in case fromString uuidString of
-      Just uuid -> pure uuid
-      Nothing   -> typeMismatch "UUID" json
-
 instance ToJSON User
 instance FromJSON User
-data User = User { userId :: T.Text, name :: T.Text, email :: T.Text } deriving (Eq, Show, Generic)
+data User = User { userId :: TL.Text, name :: TL.Text, email :: TL.Text } deriving (Eq, Show, Generic)
 
 instance ToJSON Route
 instance FromJSON Route

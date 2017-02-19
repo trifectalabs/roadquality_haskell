@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE ImplicitParams #-}
 
 import           Web.Scotty
@@ -97,7 +99,6 @@ main = do
           resp <- liftIO $ doJSONPostRequest mgr oauthConf url (body ++ [("state", "test")])
           case (resp :: OAuth2Result AccessToken) of
             Right token -> do
-              liftIO $ print token
               user <- liftIO $ userinfo' mgr token
               case (user :: OAuth2Result User) of
                 Right user -> do
@@ -137,7 +138,7 @@ buildFetchAccessTokenURI oauthConf code =
                 <> "&redirect_uri=" <> "http://localhost:3000/oauth/facebook"
                 <> "&code=" <> convertString code
 
-userinfo' :: Manager -> AccessToken -> IO (OAuth2Result User)
+userinfo' :: FromJSON User => Manager -> AccessToken -> IO (OAuth2Result User)
 userinfo' mgr token = authGetJSON mgr token "https://graph.facebook.com/me?fields=id,name,email"
 
 createSession :: User -> AccessToken -> IO Session

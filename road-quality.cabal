@@ -15,7 +15,6 @@ executable road-quality
   hs-source-dirs:      src
   build-depends:       base
                      , scotty
-                     , hoauth2
                      , http-conduit
                      , http-types
                      , wai
@@ -26,9 +25,10 @@ executable road-quality
                      , double-conversion
                      , string-conversions
                      , containers
-                     , product-profunctors >= 0.6.2   && < 0.8
-                     , time                >= 1.4     && < 1.7
-                     , postgresql-simple   >= 0.5     && < 0.6
-                     , configurator        >= 0.3.0.0
-                     , transformers        >= 0.4.2.0
-                     , resource-pool       >= 0.2.3.2
+                     , hoauth2 >= 0.5.8
+                     , product-profunctors
+                     , time
+                     , postgresql-simple
+                     , configurator
+                     , transformers
+                     , resource-pool
