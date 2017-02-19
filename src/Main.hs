@@ -23,12 +23,17 @@ import           Network.OAuth.OAuth2
 import           Data.Maybe
 import           Data.Map as Map
 import           Network.Wai
+import           Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 
 import           Models
 import           DB
 import           Config
 import           OAuth
 
+type SessionStore = Map TL.Text Session
+
+sessionStore :: SessionStore
+sessionStore = Map.empty
 
 main :: IO ()
 main = do
@@ -42,8 +47,8 @@ main = do
     (Just a, Nothing) -> putStrLn "No oauth configuration found. Exiting..."
     (Just dbConf, Just oauthConf) -> do
       pool <- createPool (newConn dbConf) close 1 40 10
+      sessionStore <- newMVar sessionStore
       let ?pool = pool
-      let ?sessionStore = Map.empty :: Map TL.Text Session
 
       scotty 3000 $ do
 
@@ -92,23 +97,26 @@ main = do
           resp <- liftIO $ doJSONPostRequest mgr oauthConf url (body ++ [("state", "test")])
           case (resp :: OAuth2Result AccessToken) of
             Right token -> do
+              liftIO $ print token
               user <- liftIO $ userinfo' mgr token
               case (user :: OAuth2Result User) of
                 Right user -> do
                   cookie <- parseSessionCookie r
-                  session <- createSession $ user token
-                  let ?sessionStore = storeSession cookie session
+                  session <- liftIO $ createSession user token
+                  liftIO $ modifyMVar_ sessionStore $ \s -> do
+                    let s' = storeSession s (fromJust cookie) session
+                    return s'
                   redirect "/segments"
                 Left l -> text $ convertString l
             Left l ->
               text $ convertString l
 
-authenticatedRequest :: (?sessionStore :: Map TL.Text Session) => Network.Wai.Request -> ActionM () -> ActionM ()
+authenticatedRequest :: Network.Wai.Request -> ActionM () -> ActionM ()
 authenticatedRequest r action = do
   cookie <- parseSessionCookie r
   case cookie of
     Just c -> do
-      let sessionMaybe = findSession c
+      let sessionMaybe = findSession sessionStore c
       case sessionMaybe of
         Just s -> action
         Nothing -> text "cookie not authorized"
@@ -129,7 +137,7 @@ buildFetchAccessTokenURI oauthConf code =
                 <> "&redirect_uri=" <> "http://localhost:3000/oauth/facebook"
                 <> "&code=" <> convertString code
 
-userinfo' :: FromJSON User => Manager -> AccessToken -> IO (OAuth2Result User)
+userinfo' :: Manager -> AccessToken -> IO (OAuth2Result User)
 userinfo' mgr token = authGetJSON mgr token "https://graph.facebook.com/me?fields=id,name,email"
 
 createSession :: User -> AccessToken -> IO Session
@@ -137,12 +145,12 @@ createSession user accessToken = do
   Session <$> nextRandom
           <*> return user
 
-storeSession :: (?sessionStore :: Map TL.Text Session) => TL.Text -> Session -> Map TL.Text Session
-storeSession cookie session = Map.insert cookie session ?sessionStore
+storeSession :: SessionStore -> TL.Text -> Session -> SessionStore
+storeSession store cookie session = Map.insert cookie session store
 
-findSession :: (?sessionStore :: Map TL.Text Session) => TL.Text -> Maybe Session
-findSession cookie =
-  Map.lookup cookie ?sessionStore
+findSession :: SessionStore -> TL.Text -> Maybe Session
+findSession store cookie =
+  Map.lookup cookie store
 
 parseSessionCookie :: Network.Wai.Request -> ActionM (Maybe TL.Text)
 parseSessionCookie r = do
