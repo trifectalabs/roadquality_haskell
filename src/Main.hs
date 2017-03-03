@@ -17,6 +17,7 @@ import           Data.UUID.V4 (nextRandom)
 import           Data.UUID (UUID, toString)
 import qualified Data.UUID as UUID
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import           Data.String.Conversions
 import qualified Data.Text.Lazy.Encoding as TL
@@ -96,7 +97,13 @@ main = do
           code <- param "code"
           mgr <- liftIO $ newManager tlsManagerSettings
           let (url, body) = accessTokenUrl oauthConf code
-          resp <- liftIO $ doJSONPostRequest mgr oauthConf url (body ++ [("state", "test")])
+          let uri = appendQueryParam url (transform' [ ("client_id", Just $ oauthClientId oauthConf)
+                                                  , ("client_secret", Just $ oauthClientSecret oauthConf)
+                                                  , ("state", Just "test")
+                                                  ] ++ body)
+
+          req2 <- liftIO $ parseRequest (convertString uri)
+          resp <- fmap (parseResponseJSON . handleResponse) (httpLbs req2 mgr)
           case (resp :: OAuth2Result AccessToken) of
             Right token -> do
               user <- liftIO $ userinfo' mgr token
@@ -156,3 +163,7 @@ findSession store cookie =
 parseSessionCookie :: Network.Wai.Request -> ActionM (Maybe TL.Text)
 parseSessionCookie r = do
   header "Cookie"
+
+
+-- Helper method here until requeest fixed https://github.com/freizl/hoauth2/issues/55
+
